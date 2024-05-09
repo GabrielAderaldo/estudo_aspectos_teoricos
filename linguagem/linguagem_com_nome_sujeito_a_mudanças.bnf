@@ -1,0 +1,19 @@
+<program> ::= <statement-list>
+
+<statement-list> ::= <statement> | <statement-list> <statement>
+
+<statement> ::= <variable-declaration>
+
+<variable-declaration> ::= <let-declaration> | <var-declaration>
+
+<let-declaration> ::= "let" <identifier> ":" <type> <identifier>
+
+<var-declaration> ::= "var" <identifier> ":" <type> <identifier>
+
+<type> ::= "number" | "string" | "char" | "bool"
+
+<identifier> ::= <letter> { <letter> | <digit> }*
+
+<letter> ::= "a" | "b" | ... | "z" | "A" | "B" | ... | "Z"
+
+<digit> ::= "0" | "1" | ... | "9"

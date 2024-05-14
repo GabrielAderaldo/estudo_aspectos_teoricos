@@ -2,7 +2,7 @@
 
 <statement-list> ::= <statement> | <statement-list> <statement>
 
-<statement> ::= <variable-declaration>
+<statement> ::= <variable-declaration> | <if-else-statement>
 
 <variable-declaration> ::= <let-declaration> | <var-declaration>
 
@@ -10,10 +10,29 @@
 
 <var-declaration> ::= "var" <identifier> ":" <type> <identifier>
 
+<if-else-statement> ::= "if" <expression> "{" <statement-list> "}" [ "else" "{" <statement-list> "}" ]
+
 <type> ::= "number" | "string" | "char" | "bool"
 
 <identifier> ::= <letter> { <letter> | <digit> }*
 
+<expression> ::= <identifier> | <literal> | <comparison-expression>
+
+<literal> ::= <number-literal> | <string-literal> | <char-literal> | <bool-literal>
+
+<number-literal> ::= <digit> { <digit> }*
+
+<string-literal> ::= "\"" { <any-character> }* "\""
+
+<char-literal> ::= "'" <any-character> "'"
+
+<bool-literal> ::= "true" | "false"
+
+<comparison-expression> ::= <expression> <comparison-operator> <expression>
+
+<comparison-operator> ::= "==" | "!=" | "<" | ">" | "<=" | ">="
+
 <letter> ::= "a" | "b" | ... | "z" | "A" | "B" | ... | "Z"
 
 <digit> ::= "0" | "1" | ... | "9"
+

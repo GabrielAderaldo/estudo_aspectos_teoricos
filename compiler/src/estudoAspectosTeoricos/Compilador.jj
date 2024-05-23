@@ -1,0 +1,168 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */
+options
+{
+  static = false;
+}
+
+PARSER_BEGIN(Compilador)
+package estudoAspectosTeoricos;
+
+public class Compilador
+{
+  public static void main(String args []) throws ParseException
+  {
+    Compilador parser = new Compilador(System.in);
+    parser.program();
+    System.out.println("Parsing completed successfully.");
+  }
+}
+
+PARSER_END(Compilador)
+
+SKIP : {
+  " " | "\t" | "\n" | "\r"
+}
+
+TOKEN : {
+  < LET: "let" >
+| < VAR: "var" >
+| < IF: "if" >
+| < ELSE: "else" >
+| < NUMBER_TYPE: "number" >
+| < STRING_TYPE: "string" >
+| < CHAR_TYPE: "char" >
+| < BOOL_TYPE: "bool" >
+| < TRUE: "true" >
+| < FALSE: "false" >
+| < EQ: "==" >
+| < NEQ: "!=" >
+| < LT: "<" >
+| < GT: ">" >
+| < LE: "<=" >
+| < GE: ">=" >
+| < IDENTIFIER: (<LETTER>)+(<LETTER>|<DIGIT>)* >
+| < NUMBER_LITERAL: (<DIGIT>)+ >
+| < STRING_LITERAL: "\"" (~["\""])* "\"" >
+| < CHAR_LITERAL: "'" ~["'"] "'" >
+| < #LETTER: ["a"-"z", "A"-"Z"] >
+| < #DIGIT: ["0"-"9"] >
+}
+
+void program() :
+{}
+{
+  statement_list()
+}
+
+void statement_list() :
+{}
+{
+  statement() ( statement() )*
+}
+
+void statement() :
+{}
+{
+  variable_declaration()
+| if_else_statement()
+}
+
+void variable_declaration() :
+{}
+{
+  let_declaration()
+| var_declaration()
+}
+
+void let_declaration() :
+{}
+{
+  <LET> <IDENTIFIER> ":" type() <IDENTIFIER>
+}
+
+void var_declaration() :
+{}
+{
+  <VAR> <IDENTIFIER> ":" type() <IDENTIFIER>
+}
+
+void if_else_statement() :
+{}
+{
+  <IF> expression() "{" statement_list() "}" [ <ELSE> "{" statement_list() "}" ]
+}
+
+void type() :
+{}
+{
+  <NUMBER_TYPE>
+| <STRING_TYPE>
+| <CHAR_TYPE>
+| <BOOL_TYPE>
+}
+
+void expression() :
+{}
+{
+  simple_expression() ( comparison_operator() simple_expression() )*
+}
+
+void simple_expression() :
+{}
+{
+  identifier()
+| literal()
+}
+
+void identifier() :
+{}
+{
+  <IDENTIFIER>
+}
+
+void literal() :
+{}
+{
+  number_literal()
+| string_literal()
+| char_literal()
+| bool_literal()
+}
+
+void number_literal() :
+{}
+{
+  <NUMBER_LITERAL>
+}
+
+void string_literal() :
+{}
+{
+  <STRING_LITERAL>
+}
+
+void char_literal() :
+{}
+{
+  <CHAR_LITERAL>
+}
+
+void bool_literal() :
+{}
+{
+  <TRUE>
+| <FALSE>
+}
+
+void comparison_operator() :
+{}
+{
+  <EQ>
+| <NEQ>
+| <LT>
+| <GT>
+| <LE>
+| <GE>
+}

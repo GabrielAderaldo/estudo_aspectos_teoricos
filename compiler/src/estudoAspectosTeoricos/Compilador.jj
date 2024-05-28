@@ -4,18 +4,38 @@
 options
 {
   static = false;
+  LOOKAHEAD = 1;
 }
 
 PARSER_BEGIN(Compilador)
 package estudoAspectosTeoricos;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Compilador
 {
+  private static Map<String, Integer> symbolTable = new HashMap<>();
   public static void main(String args []) throws ParseException
   {
     Compilador parser = new Compilador(System.in);
-    parser.program();
-    System.out.println("Parsing completed successfully.");
+    int result = parser.program();
+    System.out.println("Result: " + result);
+  }
+
+  private static int lookup(String id) {
+    Integer value = symbolTable.get(id);
+    if (value == null) {
+      throw new Error("Variable " + id + " is not defined.");
+    }
+    return value;
+  }
+
+  private static void assign(String id, int value) {
+    if (!symbolTable.containsKey(id)) {
+      throw new Error("Variable " + id + " is not defined.");
+    }
+    symbolTable.put(id, value);
   }
 }
 
@@ -42,6 +62,7 @@ TOKEN : {
 | < GT: ">" >
 | < LE: "<=" >
 | < GE: ">=" >
+| < PLUS: "+" >
 | < IDENTIFIER: (<LETTER>)+(<LETTER>|<DIGIT>)* >
 | < NUMBER_LITERAL: (<DIGIT>)+ >
 | < STRING_LITERAL: "\"" (~["\""])* "\"" >
@@ -50,48 +71,105 @@ TOKEN : {
 | < #DIGIT: ["0"-"9"] >
 }
 
-void program() :
-{}
+int program() :
 {
-  statement_list()
+  int result;
+}
+{
+  result = statement_list()
+  { return result; }
 }
 
-void statement_list() :
-{}
+int statement_list() :
 {
-  statement() ( statement() )*
+  int result = 0;
+}
+{
+  result = statement()
+  (
+    statement()
+  )*
+  { return result; }
 }
 
-void statement() :
-{}
+int statement() :
 {
-  variable_declaration()
-| if_else_statement()
+  int result = 0;
+}
+{
+  ( variable_declaration()
+  | result = if_else_statement()
+  | result = expression_statement() )
+  { return result; }
 }
 
 void variable_declaration() :
-{}
 {
-  let_declaration()
-| var_declaration()
+  Token id;
+}
+{
+  ( <LET> id = <IDENTIFIER> ":" type() ";"
+  { symbolTable.put(id.image, 0); }
+  | <VAR> id = <IDENTIFIER> ":" type() ";"
+  { symbolTable.put(id.image, 0); } )
 }
 
-void let_declaration() :
-{}
+int if_else_statement() :
 {
-  <LET> <IDENTIFIER> ":" type() <IDENTIFIER>
+  int result = 0;
+}
+{
+  <IF> "(" expression() ")" "{" result = statement_list() "}"
+  [ <ELSE> "{" result = statement_list() "}" ]
+  { return result; }
 }
 
-void var_declaration() :
-{}
+int expression_statement() :
 {
-  <VAR> <IDENTIFIER> ":" type() <IDENTIFIER>
+  int result;
+}
+{
+  result = expression() ";"
+  { return result; }
 }
 
-void if_else_statement() :
-{}
+int expression() :
 {
-  <IF> expression() "{" statement_list() "}" [ <ELSE> "{" statement_list() "}" ]
+  int result, term1, term2;
+}
+{
+  term1 = term()
+  (
+    <PLUS> term2 = term() { term1 += term2; }
+  )*
+  { return term1; }
+}
+
+int term() :
+{
+  int result;
+}
+{
+  result = factor()
+  { return result; }
+}
+
+int factor() throws ParseException:
+{
+  Token t;
+}
+{
+  (t = <NUMBER_LITERAL> { return Integer.parseInt(t.image); })
+| (t = <IDENTIFIER>
+    {
+      if (symbolTable.containsKey(t.image)) {
+        return lookup(t.image);
+      } else {
+        throw new Error("Variable " + t.image + " is not defined.");
+      }
+    }
+  )
+| "(" expression() ")"
 }
 
 void type() :
@@ -101,59 +179,6 @@ void type() :
 | <STRING_TYPE>
 | <CHAR_TYPE>
 | <BOOL_TYPE>
-}
-
-void expression() :
-{}
-{
-  simple_expression() ( comparison_operator() simple_expression() )*
-}
-
-void simple_expression() :
-{}
-{
-  identifier()
-| literal()
-}
-
-void identifier() :
-{}
-{
-  <IDENTIFIER>
-}
-
-void literal() :
-{}
-{
-  number_literal()
-| string_literal()
-| char_literal()
-| bool_literal()
-}
-
-void number_literal() :
-{}
-{
-  <NUMBER_LITERAL>
-}
-
-void string_literal() :
-{}
-{
-  <STRING_LITERAL>
-}
-
-void char_literal() :
-{}
-{
-  <CHAR_LITERAL>
-}
-
-void bool_literal() :
-{}
-{
-  <TRUE>
-| <FALSE>
 }
 
 void comparison_operator() :

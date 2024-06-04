@@ -10,17 +10,39 @@ options
 PARSER_BEGIN(Compilador)
 package estudoAspectosTeoricos;
 
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class Compilador
 {
   private static Map<String, Integer> symbolTable = new HashMap<>();
   public static void main(String args []) throws ParseException
   {
-    Compilador parser = new Compilador(System.in);
-    int result = parser.program();
-    System.out.println("Result: " + result);
+    Scanner scanner = new Scanner(System.in);
+    System.out.println("Enter your input:");
+    StringBuilder inputBuilder = new StringBuilder();
+    while (scanner.hasNextLine()) {
+      String line = scanner.nextLine();
+      if (line.isEmpty()) {
+        break; // Stop reading input on an empty line
+      }
+      inputBuilder.append(line).append("\n");
+    }
+    String input = inputBuilder.toString();
+    InputStream stream = new ByteArrayInputStream(input.getBytes());
+    Compilador parser = new Compilador(stream);
+    String result = parser.program();
+    System.out.println(result);
+    writeToFile("output.js", result);
+  }
+
+  private static void writeToFile(String filename, String content) throws IOException {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+      writer.write("const symbolTable = " + content + ";");
+    }
   }
 
   private static int lookup(String id) {
@@ -36,6 +58,19 @@ public class Compilador
       throw new Error("Variable " + id + " is not defined.");
     }
     symbolTable.put(id, value);
+  }
+
+  public static String symbolTableToString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\n");
+    for (Map.Entry<String, Integer> entry : symbolTable.entrySet()) {
+        sb.append("  \"").append(entry.getKey()).append("\": ").append(entry.getValue()).append(",\n");
+    }
+    if (!symbolTable.isEmpty()) {
+        sb.setLength(sb.length() - 2); // Remove a última vírgula e nova linha
+    }
+    sb.append("\n}");
+    return sb.toString();
   }
 }
 
@@ -63,6 +98,7 @@ TOKEN : {
 | < LE: "<=" >
 | < GE: ">=" >
 | < PLUS: "+" >
+| < ASSIGN: "=" >
 | < IDENTIFIER: (<LETTER>)+(<LETTER>|<DIGIT>)* >
 | < NUMBER_LITERAL: (<DIGIT>)+ >
 | < STRING_LITERAL: "\"" (~["\""])* "\"" >
@@ -71,13 +107,13 @@ TOKEN : {
 | < #DIGIT: ["0"-"9"] >
 }
 
-int program() :
+String program() :
 {
   int result;
 }
 {
   result = statement_list()
-  { return result; }
+  { return Compilador.symbolTableToString(); }
 }
 
 int statement_list() :
@@ -98,6 +134,7 @@ int statement() :
 }
 {
   ( variable_declaration()
+  | assignment()
   | result = if_else_statement()
   | result = expression_statement() )
   { return result; }
@@ -109,9 +146,19 @@ void variable_declaration() :
 }
 {
   ( <LET> id = <IDENTIFIER> ":" type() ";"
-  { symbolTable.put(id.image, 0); }
+  { Compilador.symbolTable.put(id.image, 0); }
   | <VAR> id = <IDENTIFIER> ":" type() ";"
-  { symbolTable.put(id.image, 0); } )
+  { Compilador.symbolTable.put(id.image, 0); } )
+}
+
+void assignment() :
+{
+  Token id;
+  int value;
+}
+{
+  id = <IDENTIFIER> <ASSIGN> value = expression() ";"
+  { assign(id.image, value); }
 }
 
 int if_else_statement() :
@@ -162,7 +209,7 @@ int factor() throws ParseException:
   (t = <NUMBER_LITERAL> { return Integer.parseInt(t.image); })
 | (t = <IDENTIFIER>
     {
-      if (symbolTable.containsKey(t.image)) {
+      if (Compilador.symbolTable.containsKey(t.image)) {
         return lookup(t.image);
       } else {
         throw new Error("Variable " + t.image + " is not defined.");

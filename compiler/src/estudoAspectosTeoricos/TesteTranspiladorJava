@@ -1,0 +1,260 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */
+options
+{
+  static = false;
+}
+
+PARSER_BEGIN(TesteTranspiladorJava)
+package estudoAspectosTeoricos;
+
+import java.util.*;
+
+public class TesteTranspiladorJava {
+    public static void main(String[] args) throws ParseException {
+        TesteTranspiladorJava parser = new TesteTranspiladorJava(System.in);
+        Program program = parser.program();
+        System.out.println(program.toJavaCode());
+    }
+}
+
+PARSER_END(TesteTranspiladorJava)
+
+SKIP : { " " | "\t" | "\n" | "\r" }
+
+TOKEN : {
+    < LET: "let" >
+  | < VAR: "var" >
+  | < IF: "if" >
+  | < ELSE: "else" >
+  | < NUMBER: "number" >
+  | < STRING: "string" >
+  | < CHAR: "char" >
+  | < BOOL: "bool" >
+  | < TRUE: "true" >
+  | < FALSE: "false" >
+}
+
+TOKEN : {
+    < IDENTIFIER: <LETTER> (<LETTER> | <DIGIT>)* >
+  | < NUMBER_LITERAL: <DIGIT>+ >
+  | < STRING_LITERAL: "\"" (~["\""])* "\"" >
+  | < CHAR_LITERAL: "'" (~["'"])* "'" >
+}
+
+TOKEN : {
+    < EQ: "==" >
+  | < NEQ: "!=" >
+  | < LT: "<" >
+  | < GT: ">" >
+  | < LEQ: "<=" >
+  | < GEQ: ">=" >
+}
+
+TOKEN : {
+    < ASSIGN: "=" >
+  | < PLUS: "+" >
+  | < MINUS: "-" >
+  | < MULTIPLY: "*" >
+  | < DIVIDE: "/" >
+  | < SEMICOLON: ";" >
+  | < LPAREN: "(" >
+  | < RPAREN: ")" >
+}
+
+TOKEN : {
+    < #LETTER: ["a"-"z", "A"-"Z"] >
+  | < #DIGIT: ["0"-"9"] >
+}
+
+Program program() : {
+    List<Statement> statements = new ArrayList<>();
+} {
+    ( statements.add(statement()) <SEMICOLON> )*
+    { return new Program(statements); }
+}
+
+Statement statement() : {
+    Statement stmt;
+} {
+    stmt = variable_declaration()
+    | stmt = assignment()
+    { return stmt; }
+}
+
+Statement variable_declaration() : {
+    String kind, id, type;
+} {
+    kind = (< LET > { "let"; } | < VAR > { "var"; })
+    id = identifier()
+    < : >
+    type = type()
+    { return new VariableDeclaration(kind, id, type); }
+}
+
+Statement assignment() : {
+    String id;
+    Expression value;
+} {
+    id = identifier()
+    < ASSIGN >
+    value = expression()
+    { return new Assignment(id, value); }
+}
+
+String type() : {
+    Token t;
+} {
+    t = < NUMBER > | < STRING > | < CHAR > | < BOOL >
+    { return t.image; }
+}
+
+String identifier() : {
+    Token t;
+} {
+    t = < IDENTIFIER >
+    { return t.image; }
+}
+
+Expression expression() : {
+    Expression expr;
+} {
+    expr = additive_expression()
+    { return expr; }
+}
+
+Expression additive_expression() : {
+    Expression left, right;
+    Token operator;
+} {
+    left = multiplicative_expression()
+    (
+      operator = < PLUS > right = multiplicative_expression() { left = new BinaryExpression(left, operator.image, right); }
+    | operator = < MINUS > right = multiplicative_expression() { left = new BinaryExpression(left, operator.image, right); }
+    )*
+    { return left; }
+}
+
+Expression multiplicative_expression() : {
+    Expression left, right;
+    Token operator;
+} {
+    left = primary_expression()
+    (
+      operator = < MULTIPLY > right = primary_expression() { left = new BinaryExpression(left, operator.image, right); }
+    | operator = < DIVIDE > right = primary_expression() { left = new BinaryExpression(left, operator.image, right); }
+    )*
+    { return left; }
+}
+
+Expression primary_expression() : {
+    Expression expr;
+    Token t;
+} {
+    t = < NUMBER_LITERAL > { expr = new LiteralExpression(t.image); }
+    | t = < IDENTIFIER > { expr = new IdentifierExpression(t.image); }
+    | < LPAREN > expr = expression() < RPAREN >
+    { return expr; }
+}
+
+class Program {
+    List<Statement> statements;
+
+    public Program(List<Statement> statements) {
+        this.statements = statements;
+    }
+
+    public String toJavaCode() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("public class GeneratedProgram {\n");
+        sb.append("    public static void main(String[] args) {\n");
+        for (Statement stmt : statements) {
+            sb.append("        ").append(stmt.toJavaCode()).append("\n");
+        }
+        sb.append("    }\n");
+        sb.append("}\n");
+        return sb.toString();
+    }
+}
+
+abstract class Statement {
+    public abstract String toJavaCode();
+}
+
+class VariableDeclaration extends Statement {
+    String kind, id, type;
+
+    public VariableDeclaration(String kind, String id, String type) {
+        this.kind = kind;
+        this.id = id;
+        this.type = type;
+    }
+
+    @Override
+    public String toJavaCode() {
+        String javaType = type.equals("number") ? "int" : type.equals("string") ? "String" : type.equals("char") ? "char" : "boolean";
+        return javaType + " " + id + ";";
+    }
+}
+
+class Assignment extends Statement {
+    String id;
+    Expression value;
+
+    public Assignment(String id, Expression value) {
+        this.id = id;
+        this.value = value;
+    }
+
+    @Override
+    public String toJavaCode() {
+        return id + " = " + value.toJavaCode() + ";";
+    }
+}
+
+abstract class Expression {
+    public abstract String toJavaCode();
+}
+
+class LiteralExpression extends Expression {
+    String value;
+
+    public LiteralExpression(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toJavaCode() {
+        return value;
+    }
+}
+
+class IdentifierExpression extends Expression {
+    String name;
+
+    public IdentifierExpression(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toJavaCode() {
+        return name;
+    }
+}
+
+class BinaryExpression extends Expression {
+    Expression left, right;
+    String operator;
+
+    public BinaryExpression(Expression left, String operator, Expression right) {
+        this.left = left;
+        this.operator = operator;
+        this.right = right;
+    }
+
+    @Override
+    public String toJavaCode() {
+        return left.toJavaCode() + " " + operator + " " + right.toJavaCode();
+    }
+}
